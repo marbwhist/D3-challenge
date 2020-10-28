@@ -36,7 +36,7 @@ statesData.forEach(function(data) {
     data.smokes = +data.smokes;
   });
 
-  var xTimeScale = d3.scaleTime()
+  var xLinearScale = d3.scaleLinear()
   .range([0, chartWidth])
   .domain(d3.extent(statesData, data => data.age));
 
@@ -48,33 +48,43 @@ var yLinearScale = d3.scaleLinear()
 
 // Create two new functions passing the scales in as arguments
 // These will be used to create the chart's axes
-var bottomAxis = d3.axisBottom(xTimeScale);
+var bottomAxis = d3.axisBottom(xLinearScale);
 var leftAxis = d3.axisLeft(yLinearScale);
 
 // Configure a drawLine function which will use our scales to plot the line's points
-var drawLine = d3
-  .line()
-  .x(data => xTimeScale(data.age))
-  .y(data => yLinearScale(data.smokes));
 
-// Append an SVG path and plot its points using the line function
-chartGroup.append("path")
-  // The drawLine function returns the instructions for creating the line for milesData
-  .attr("d", drawLine(statesData))
-  .classed("line", true);
 
-// Append an SVG group element to the SVG area, create the left axis inside of it
 chartGroup.append("g")
-  .classed("axis", true)
-  .call(leftAxis);
+.attr("transform", `translate(0, ${chartHeight})`)
+.call(bottomAxis);
 
-// Append an SVG group element to the SVG area, create the bottom axis inside of it
-// Translate the bottom axis to the bottom of the page
 chartGroup.append("g")
-  .classed("axis", true)
-  .attr("transform", "translate(0, " + chartHeight + ")")
-  .call(bottomAxis);
-}).catch(function(error) {
+.call(leftAxis);
 
+var circlesGroup = chartGroup.selectAll("circle")
+.data(statesData)
+.enter()
+.append("circle")
+.attr("cx", d => xLinearScale(d.age))
+.attr("cy", d => yLinearScale(d.smokes))
+.attr("r", "15")
+.attr("fill", "pink")
+.attr("opacity", ".5");
+
+var toolTip = d3.tip()
+.attr("class", "tooltip")
+.offset([80, -60])
+.html(function(d) {
+  return (`${d.age}<br>Age: ${d.smokes}<br>Smoker:`);
+});
+chartGroup.call(toolTip);
+
+circlesGroup.on("click", function(data) {
+  toolTip.show(data, this);
+})
+  // onmouseout event
+  .on("mouseout", function(data, index) {
+    toolTip.hide(data);
+  });
 });
 
